@@ -38,10 +38,10 @@ window.UMXConverter = function() {
 					const it = converter.wavToImpulse(wavData, inputAudio);
 
 					if (format === "it") {
-						converter.save(it, `${converter.options.name}.it`, "application/octet-stream");
+						converter.save(it, `${converter.options.name}.it`);
 					} else {
 						const umx = converter.impulseToUMX(it);
-						converter.save(umx, `${converter.options.name}.umx`, "application/octet-stream");
+						converter.save(umx, `${converter.options.name}.umx`);
 					}
 
 					if (typeof converter.options.success === "function") {
@@ -62,7 +62,7 @@ window.UMXConverter = function() {
 	/**
 	 * Create a data blob then prompt a file download
 	 */
-	this.save = function(data, filename, type) {
+	this.save = function(data, filename, type = "application/octet-stream") {
 		const blob = new Blob([data], {
 			type: type
 		})
@@ -277,10 +277,9 @@ window.UMXConverter = function() {
 			offset += 26;
 
 			// Cvt / convert (bitmask; bit 1 on = signed samples; off = unsigned)
-			if (converter.options.bitDepth === 16) {
-				data.setUint8(offset, 0x01);
-			}
-
+			// IT 2.02 and above use signed samples
+			// OpenMPT appears to automatically convert 8-bit unsigned audio to signed
+			data.setUint8(offset, 0x01);
 			offset++;
 
 			// DfP / default pan
@@ -288,7 +287,7 @@ window.UMXConverter = function() {
 			offset++;
 
 			// Length - length of sample in no. of samples (not bytes)
-			data.setUint32(offset, inputAudio.length, true);
+			data.setUint32(offset, wavData[i].sampleLength, true);
 			offset += 4;
 
 			// Loop Begin - start of loop (no of samples in, not bytes)
@@ -820,7 +819,7 @@ window.UMXConverter = function() {
 
 		}
 
-		// Stereo = false OR only 1 channel
+		// Stereo == false OR only 1 channel
 		else {
 
 			// Downmix L/R channels to mono
@@ -887,6 +886,9 @@ window.UMXConverter = function() {
 		} else {
 			converter.floatTo16BitPCM(view, 44, samples)
 		}
+
+		buffer.sampleLength = samples.length
+
 		return buffer
 	}
 
@@ -900,20 +902,19 @@ window.UMXConverter = function() {
 			result[index++] = (inputL[inputIndex] + inputR[inputIndex]) / 2
 			inputIndex++
 		}
+
 		return result
 	}
 
 	this.floatTo8BitPCM = function(output, offset, input) {
 		for (var i = 0; i < input.length; i++, offset++) {
-			var s = Math.max(0, Math.min(0xFF, input[i] * 0x7F + 0x80))
-			output.setInt8(offset, s)
+			output.setInt8(offset, input[i] < 0 ? input[i] * 0x80 : input[i] * 0x7F)
 		}
 	}
 
 	this.floatTo16BitPCM = function(output, offset, input) {
 		for (var i = 0; i < input.length; i++, offset += 2) {
-			var s = Math.max(-1, Math.min(1, input[i]))
-			output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
+			output.setInt16(offset, input[i] < 0 ? input[i] * 0x8000 : input[i] * 0x7FFF, true)
 		}
 	}
 
