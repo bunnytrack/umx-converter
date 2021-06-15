@@ -908,13 +908,15 @@ window.UMXConverter = function() {
 
 	this.floatTo8BitPCM = function(output, offset, input) {
 		for (var i = 0; i < input.length; i++, offset++) {
-			output.setInt8(offset, input[i] < 0 ? input[i] * 0x80 : input[i] * 0x7F)
+			const sample = Math.max(-1, Math.min(1, input[i]))
+			output.setInt8(offset, sample < 0 ? sample * 0x80 : sample * 0x7F)
 		}
 	}
 
 	this.floatTo16BitPCM = function(output, offset, input) {
 		for (var i = 0; i < input.length; i++, offset += 2) {
-			output.setInt16(offset, input[i] < 0 ? input[i] * 0x8000 : input[i] * 0x7FFF, true)
+			const sample = Math.max(-1, Math.min(1, input[i]))
+			output.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true)
 		}
 	}
 
