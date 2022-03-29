@@ -397,7 +397,7 @@ window.UMXConverter = function() {
 				this.musicObject = new UMusic(...musicObject);
 				this.importTable = new ImportTable(importTable);
 				this.exportTable = new ExportTable(exportTable);
-				this.guid        = this.uuidv4();
+				this.guid        = this.getUUIDv4();
 
 				// Hack.
 				// Adding the UMusic class object here directly as this will only ever be used for one object.
@@ -585,17 +585,13 @@ window.UMXConverter = function() {
 				return data;
 			}
 
-			// Modified version of https://stackoverflow.com/a/2117523/7290573
-			uuidv4 = function() {
-				const guid = "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-					const r = Math.random() * 16 | 0;
-					const v = c == "x" ? r : (r & 0x3 | 0x8);
-
-					return v.toString(16).toUpperCase();
-				})
+			getUUIDv4 = function() {
+				if (typeof window.crypto !== "object") {
+					throw "Crypto interface unavailable";
+				}
 
 				// Return as array of bytes
-				return guid.match(/.{2}/g).map(b => parseInt(b, 16));
+				return crypto.randomUUID().replace(/-/g, "").match(/.{2}/g).map(b => parseInt(b, 16));
 			}
 		}
 
