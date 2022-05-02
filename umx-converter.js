@@ -7,9 +7,11 @@ window.UMXConverter = function() {
 		sampleRate    : 22050,
 		stereo        : true,
 		extraChannels : 2,
+		ditherNoise   : 0,
+		ditherError   : 0,
 		name          : "output",
-		success       : null, // optional
-		error         : null, // optional
+		success       : null, // optional callback function
+		error         : null, // optional callback function
 	}
 
 	this.convert = function(options) {
@@ -20,7 +22,7 @@ window.UMXConverter = function() {
 		converter.options.name = converter.options.name.replace(/\W/g, "").substring(0, 0xFF - 1);
 
 		if (converter.options.input === undefined) {
-			throw "Missing input data";
+			return converter.showError("Missing input data");
 		}
 
 		const format = converter.options.format.toLowerCase();
@@ -86,7 +88,7 @@ window.UMXConverter = function() {
 		if (typeof converter.options.error === "function") {
 			converter.options.error(error);
 		} else {
-			throw error;
+			throw Error(error);
 		}
 	}
 
@@ -587,7 +589,7 @@ window.UMXConverter = function() {
 
 			getUUIDv4 = function() {
 				if (typeof window.crypto !== "object") {
-					throw "Crypto interface unavailable";
+					converter.showError("Crypto interface unavailable");
 				}
 
 				// Return as array of bytes
@@ -877,11 +879,7 @@ window.UMXConverter = function() {
 		/* data chunk length */
 		view.setUint32(40, samples.length * bytesPerSample, true)
 		/* audio samples */
-		if (converter.options.bitDepth === 8) {
-			converter.floatTo8BitPCM(view, 44, samples)
-		} else {
-			converter.floatTo16BitPCM(view, 44, samples)
-		}
+		converter.downSampleFloat(view, 44, samples)
 
 		buffer.sampleLength = samples.length
 
@@ -889,35 +887,79 @@ window.UMXConverter = function() {
 	}
 
 	this.mergeChannels = function(inputL, inputR) {
-		var result = new Float32Array(inputL.length)
+		const result = new Float32Array(inputL.length)
+		let i = 0
 
-		var index = 0
-		var inputIndex = 0
-
-		while (index < inputL.length) {
-			result[index++] = (inputL[inputIndex] + inputR[inputIndex]) / 2
-			inputIndex++
+		while (i < inputL.length) {
+			result[i] = (inputL[i] + inputR[i]) / 2
+			i++
 		}
 
 		return result
 	}
 
-	this.floatTo8BitPCM = function(output, offset, input) {
-		for (var i = 0; i < input.length; i++, offset++) {
-			const sample = Math.max(-1, Math.min(1, input[i]))
-			output.setInt8(offset, sample < 0 ? sample * 0x80 : sample * 0x7F)
-		}
-	}
+	this.downSampleFloat = function(buffer, offset, samples) {
+		const { bitDepth } = converter.options;
 
-	this.floatTo16BitPCM = function(output, offset, input) {
-		for (var i = 0; i < input.length; i++, offset += 2) {
-			const sample = Math.max(-1, Math.min(1, input[i]))
-			output.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true)
+		// DataView setInt method - usually setInt8() or setInt16()
+		const setInt = buffer[`setInt${bitDepth}`].bind(buffer);
+
+		// 8-bit = 1 byte samples; 16-bit = 2 byte samples; etc.
+		const valueSize = bitDepth / 8;
+
+		// Minimum negative value (e.g. 0x80 (-128) for 8-bit)
+		const minNeg = 1 << (bitDepth - 1);
+
+		// Maximum positive value (e.g. 0x7F (127) for 8-bit)
+		const maxPos = minNeg - 1;
+
+		// No dither - just convert the samples
+		if (!converter.options.ditherError && !converter.options.ditherNoise) {
+			for (let i = 0; i < samples.length; i++) {
+				const sample = Math.max(-1, Math.min(1, samples[i]));
+				setInt(offset + i * valueSize, sample < 0 ? sample * minNeg : sample * maxPos);
+			}
+		}
+
+		else {
+			// Error diffusion
+			if (converter.options.ditherError > 0) {
+				let error = 0;
+
+				for (let i = 0; i < samples.length; i++) {
+					const originalSample = samples[i];
+
+					// Map to chosen bit-depth range, e.g. -128..+128 for 8-bit
+					let sample = Math.max(-1, Math.min(1, originalSample)) * minNeg;
+
+					// Propagate error into adjacent sample
+					sample += error * converter.options.ditherError;
+
+					// Map back to -1..+1 range
+					const quantizedSample = Math.round(sample) / minNeg;
+
+					// Accumulate error for adjacent samples
+					error += originalSample - quantizedSample;
+
+					setInt(offset + i * valueSize, Math.max(-minNeg, Math.min(sample, maxPos)));
+				}
+			}
+
+			// Random noise
+			if (converter.options.ditherNoise > 0) {
+				for (let i = 0; i < samples.length; i++) {
+					let sample = Math.max(-1, Math.min(1, samples[i])) * minNeg;
+
+					sample += (Math.random() - 0.5) * converter.options.ditherNoise;
+
+					setInt(offset + i * valueSize, Math.max(-minNeg, Math.min(sample, maxPos)));
+				}
+			}
 		}
 	}
 
 	this.writeString = function(view, offset, string) {
-		for (var i = 0; i < string.length; i++) {
+		for (let i = 0; i < string.length; i++) {
 			view.setUint8(offset + i, string.charCodeAt(i))
 		}
 	}
