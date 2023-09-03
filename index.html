@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="description" content="Convert audio to Unreal Music (.UMX) format" />
+		<meta name="keywords" content="UMX, IT, Unreal Music, Impulse Tracker, MP3, Converter" />
+		<link rel="icon" href="./images/icon-music.png" />
+		<title>MP3 to UMX Converter</title>
+		<style>
+			html, body {
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				background-color: #373737;
+				color: white;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+			}
+			input, button {
+				font-family: inherit;
+			}
+			a {
+				color: #ffa555;
+			}
+			main {
+				max-width: 970px;
+				padding: 10px;
+			}
+			h1 {
+				background-color: #252525;
+				color: #ff7900;
+				font-size: 30px;
+				margin: 0 0 15px;
+				padding: 5px 5px 7px 15px;
+			}
+			h3 {
+				font-size: 23px;
+				margin: 0 0 15px;
+			}
+			p {
+				line-height: 1.5;
+				margin: 0;
+			}
+			p:not(:last-of-type) {
+				margin-bottom: 15px;
+			}
+			main > section:not(:last-child) {
+				border-bottom: 1px dotted grey;
+				margin-bottom: 30px;
+				padding-bottom: 20px;
+			}
+			.meta p, .note {
+				font-size: 14px;
+			}
+			.file-input-wrapper .inner {
+				background-color: #252525;
+				border: 2px dashed #a5a5a5;
+				display: inline-block;
+				height: 100px;
+				position: relative;
+				width: 300px;
+			}
+			.file-input-wrapper.file-selected .inner {
+				border-color: #ff7900;
+			}
+			#file-input {
+				box-sizing: border-box;
+				cursor: pointer;
+				height: 100%;
+				padding: 40px;
+				position: absolute;
+				width: 100%;
+			}
+			label {
+				cursor: pointer;
+			}
+			table {
+				border-collapse: collapse;
+			}
+			.flex {
+				display: flex;
+				flex-direction: column;
+			}
+			.settings {
+				margin-bottom: 20px;
+			}
+			.settings th,
+			.settings td {
+				padding: 7px 30px 8px 30px;
+			}
+			.settings th {
+				background-color: #252525;
+			}
+			.settings tbody td {
+				vertical-align: top;
+			}
+			.settings label:not(:last-child) {
+				margin-bottom: 12px;
+			}
+			.settings input[type="radio"]:checked + span {
+				color: #ffa555;
+				font-weight: bold;
+			}
+			#convert {
+				cursor: pointer;
+				font-size: 16px;
+				height: 50px;
+				width: 160px;
+			}
+			[disabled] {
+				cursor: not-allowed !important;
+			}
+			.disabled {
+				opacity: 0.5;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<section class="intro">
+				<h1>MP3 to UMX Converter</h1>
+				<p>Follow the steps below to convert a file to Unreal Music (UMX) or Impulse Tracker (IT) audio for use with <a href="https://en.wikipedia.org/wiki/Unreal_Tournament" target="_blank">Unreal Tournament</a>.</p>
+				<p>It is recommended to use the UMX option for creating standalone packages, and the IT option if you wish to embed music directly into a map via the <em>MyLevel</em> pseudo-package.</p>
+				<p>For a smaller file size, it is advised to experiment with combinations of the lower settings (e.g. mono, 8-bit, 22.05 kHz).</p>
+				<p>See the <a href="https://github.com/bunnytrack/umx-converter" target="_blank">GitHub page</a> for more information.</p>
+			</section>
+
+			<section>
+				<h3>1. Choose a file</h3>
+				<div class="file-input-wrapper">
+					<div class="inner">
+						<input type="file" id="file-input" />
+					</div>
+				</div>
+			</section>
+
+			<section>
+				<h3>2. Settings</h3>
+				<div class="settings">
+					<table>
+						<thead>
+							<tr>
+								<th>Output format</th>
+								<th>Channels</th>
+								<th>Bit depth</th>
+								<th>Sample rate</th>
+								<th>Volume boost<sup>*</sup></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>
+									<div class="flex">
+										<label>
+											<input type="radio" name="format" autocomplete="off" value="it" />
+											<span>Impulse Tracker (.it)</span>
+										</label>
+										<label>
+											<input type="radio" name="format" autocomplete="off" value="umx" checked />
+											<span>Unreal Music (.umx)</span>
+										</label>
+									</div>
+								</td>
+
+								<td>
+									<div class="flex">
+										<label>
+											<input type="radio" name="channels" autocomplete="off" value="1" />
+											<span>1 (mono)</span>
+										</label>
+										<label>
+											<input type="radio" name="channels" autocomplete="off" value="2" checked />
+											<span>2 (stereo)</span>
+										</label>
+									</div>
+								</td>
+
+								<td>
+									<div class="flex">
+										<label>
+											<input type="radio" name="bit_depth" autocomplete="off" value="8" />
+											<span>8-bit</span>
+										</label>
+										<label>
+											<input type="radio" name="bit_depth" autocomplete="off" value="16" checked />
+											<span>16-bit</span>
+										</label>
+									</div>
+								</td>
+
+								<td>
+									<div class="flex">
+										<label>
+											<input type="radio" name="sample_rate" autocomplete="off" value="11025" />
+											<span>11.025 kHz</span>
+										</label>
+										<label>
+											<input type="radio" name="sample_rate" autocomplete="off" value="22050" checked />
+											<span>22.05 kHz</span>
+										</label>
+										<label>
+											<input type="radio" name="sample_rate" autocomplete="off" value="44100" />
+											<span>44.1 kHz</span>
+										</label>
+									</div>
+								</td>
+
+								<td>
+									<div class="flex">
+										<label>
+											<input type="radio" name="volume_boost" autocomplete="off" value="0" />
+											<span>0</span>
+										</label>
+										<label>
+											<input type="radio" name="volume_boost" autocomplete="off" value="1" />
+											<span>1</span>
+										</label>
+										<label>
+											<input type="radio" name="volume_boost" autocomplete="off" value="2" checked />
+											<span>2</span>
+										</label>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<p class="note">*Duplicating the IT file's audio channels increases the volume. This does not affect the file size.</p>
+			</section>
+
+			<section>
+				<h3>3. Convert</h3>
+				<button id="convert" title="Please choose an audio file" disabled>Save</button>
+			</section>
+
+			<div class="meta">
+				<p><em>Page last updated: 15th April 2021</em></p>
+			</div>
+		</main>
+
+		<script src="./js/umx-converter.js"></script>
+		<script src="./js/jquery-3.4.1.min.js"></script>
+		<script>
+			$(function() {
+				let INPUT_FILE = null;
+
+				const fileInput = $("#file-input");
+				const convertButton = $("#convert");
+
+				fileInput.on("input", function() {
+					for (const file of this.files) {
+						const fileReader = new FileReader();
+						const fileName   = file.name.substring(0, file.name.lastIndexOf("."));
+						const fileExt    = file.name.substring(file.name.lastIndexOf(".") + 1).toLowerCase();
+
+						fileReader.onload = function() {
+							INPUT_FILE = {
+								data: this.result,
+								name: fileName,
+							}
+
+							convertButton.attr("disabled", false).removeAttr("title");
+
+							$(".file-input-wrapper").addClass("file-selected");
+						}
+
+						fileReader.readAsArrayBuffer(file);
+					}
+				}).trigger("input");
+
+				// "Save" button - convert audio on click
+				convertButton.on("click", function(e) {
+					e.preventDefault();
+
+					if (INPUT_FILE !== null) {
+						const converter = new UMXConverter();
+
+						// Options
+						const format     = $("input[name='format']:checked").val();
+						const stereo     = $("input[name='channels']:checked").val() == "2";
+						const bitDepth   = parseInt($("input[name='bit_depth']:checked").val());
+						const sampleRate = parseInt($("input[name='sample_rate']:checked").val());
+						const boost      = parseInt($("input[name='volume_boost']:checked").val());
+
+						// Callbacks
+						const onSuccess = function() {
+							convertButton.attr({
+								disabled : true,
+								title    : "Please refresh the page to convert again",
+							})
+						}
+
+						const onError = function(error) {
+							alert(error);
+						}
+
+						converter.convert({
+							format        : format,
+							bitDepth      : bitDepth,
+							sampleRate    : sampleRate,
+							stereo        : stereo,
+							extraChannels : boost,
+							input         : INPUT_FILE.data,
+							name          : INPUT_FILE.name,
+							success       : onSuccess,
+							error         : onError,
+						})
+					} else {
+						alert("Please choose an audio file");
+					}
+				})
+
+				document.addEventListener("dragover",  preventDrop);
+				document.addEventListener("dragleave", preventDrop);
+				document.addEventListener("dragend",   preventDrop);
+				document.addEventListener("drop",      handleDrop);
+
+				function preventDrop(e) { e.preventDefault(); }
+
+				function handleDrop(e) {
+					e.preventDefault();
+					fileInput.prop("files", e.dataTransfer.files).trigger("input");
+				}
+
+				function readableFileSize(bytes) {
+					const thresh = 1024;
+
+					if (Math.abs(bytes) < thresh) {
+						return bytes + " B";
+					}
+
+					const units = ["kB","MB","GB","TB","PB","EB","ZB","YB"];
+
+					let u = -1;
+
+					do {
+						bytes /= thresh;
+						++u;
+					} while (Math.abs(bytes) >= thresh && u < units.length - 1);
+
+					return bytes.toFixed(1) + " " + units[u];
+				}
+			})
+		</script>
+	</body>
+</html>
