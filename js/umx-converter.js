@@ -16,8 +16,9 @@ window.UMXConverter = function() {
 		// Merge options
 		converter.options = {...converter.options, ...options};
 
-		// UT object names are fairly easy to break, so remove non-word characters and trim to 254 bytes (the max name length)
-		converter.options.name = converter.options.name.replace(/\W/g, "").substring(0, 0xFF - 1);
+		// According to source code leak, names must be less than 64 characters.
+		// Character sanitisation is less clear, so err on the side of caution.
+		converter.options.name = converter.options.name.replace(/[^a-z0-9\-_]/gi, "").substring(0, 63);
 
 		if (converter.options.input === undefined) {
 			throw "Missing input data";
